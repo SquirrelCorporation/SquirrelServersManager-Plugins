@@ -372,7 +372,7 @@ Follow these steps *only* if your plugin needs to display a user interface withi
     }
     ```
 
-5.  **Add Plugin Icon (Required):** Create `public/icon.svg` with your plugin's icon (SVG format is recommended). The `CopyPlugin` in `webpack.config.js` will copy it to `public/client/icon.svg` during the build. **The build will fail if this file is missing.**
+5.  **Add Plugin Icon (Required):** Create `public/icon.svg` with your plugin's icon (SVG format is recommended). The `CopyPlugin` in `webpack.config.js` will copy it to `public/client/icon.svg` during the build. Ensure your `manifest.json` references this icon using the path relative to `staticDir` (which is `public/`), for example: `"icon": "client/icon.svg"`. **The build will fail if `public/icon.svg` is missing.**
 
 ---
 

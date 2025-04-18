@@ -1,6 +1,7 @@
 const path = require("path");
 const webpack = require("webpack");
 const { ModuleFederationPlugin } = webpack.container;
+const CopyPlugin = require("copy-webpack-plugin");
 
 const pluginName = "todo-tasks-manager";
 
@@ -42,6 +43,11 @@ module.exports = {
         "./TodoPluginComponent": "./src/client/TodoPluginComponent.tsx",
       },
       shared: sharedConfig,
+    }),
+    new CopyPlugin({
+      patterns: [
+        { from: "public/icon.svg", to: "icon.svg", noErrorOnMissing: false },
+      ],
     }),
   ],
   devtool: "source-map",

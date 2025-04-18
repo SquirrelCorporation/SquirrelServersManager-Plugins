@@ -1,6 +1,7 @@
 const path = require("path");
 const webpack = require("webpack");
 const { ModuleFederationPlugin } = webpack.container;
+const CopyPlugin = require("copy-webpack-plugin");
 
 const pluginName = "sample-plugin";
 
@@ -58,6 +59,11 @@ module.exports = {
         "./SamplePluginComponent": "./src/client/SamplePluginComponent.tsx",
       },
       shared: sharedConfig,
+    }),
+    new CopyPlugin({
+      patterns: [
+        { from: "public/icon.svg", to: "icon.svg", noErrorOnMissing: false },
+      ],
     }),
     // Add other plugins like HtmlWebpackPlugin if needed for standalone testing
   ],
