@@ -17,22 +17,31 @@ jobs:
       - name: Find plugins with manifest.json
         id: find_plugins
         run: |
+          echo "Starting plugin discovery..."
           PLUGINS_JSON="[]"
           # Find directories directly under root containing manifest.json
           find . -maxdepth 2 -name manifest.json -printf '%h\n' | sed 's|^\./||' | while read dir; do
+            echo "Processing directory: $dir"
             # Determine build command
             BUILD_CMD="npm run build" # Default
             if [[ -f "$dir/build.sh" ]]; then
               BUILD_CMD="./build.sh"
-            elif ! grep -q '"build":' "$dir/package.json"; then
-               echo "Warning: No build script found in $dir/package.json and no build.sh found. Skipping build command."
+              echo "  Found build.sh, using build_cmd: $BUILD_CMD"
+            elif ! grep -q '"build":' "$dir/package.json" 2>/dev/null; then
+               echo "  Warning: No build script found in $dir/package.json and no build.sh found. Skipping build command."
                BUILD_CMD="echo 'No build command configured'" # Fallback safely
+            else
+              echo "  Found 'build' script in package.json, using build_cmd: $BUILD_CMD"
             fi
             # Add to JSON array (simple jq append)
+            echo "  Adding $dir to JSON..."
             PLUGINS_JSON=$(echo "$PLUGINS_JSON" | jq --arg name "$dir" --arg cmd "$BUILD_CMD" '. + [{"name": $name, "build_cmd": $cmd}]')
+            echo "  Current PLUGINS_JSON: $PLUGINS_JSON"
           done
+          echo "Final PLUGINS_JSON: $PLUGINS_JSON"
           echo "matrix=$(echo $PLUGINS_JSON | jq -c .)" >> $GITHUB_OUTPUT
-          echo "Discovered plugins: $(echo $PLUGINS_JSON | jq -c .)"
+          echo "Discovered plugins matrix output: $(echo $PLUGINS_JSON | jq -c .)"
+        shell: bash
 
   build_and_package:
     needs: discover_plugins
