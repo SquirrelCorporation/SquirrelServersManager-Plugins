@@ -5,10 +5,10 @@
     "version": "1.0.0",
     "description": "A sample plugin for testing purposes",
     "author": "Squirrel",
-    "iconUrl": "https://example.com/plugins/sample-plugin/icon.svg",
+    "iconUrl": "https://raw.githubusercontent.com/SquirrelCorporation/SquirrelServersManager-Plugins/refs/heads/master/sample-plugin/public/icon.svg",
     "checksumUrl": "https://github.com/SquirrelCorporation/SquirrelServersManager-Plugins/releases/download/latest/sample-plugin.tar.gz.sha256",
     "packageUrl": "https://github.com/SquirrelCorporation/SquirrelServersManager-Plugins/releases/download/latest/sample-plugin.tar.gz",
-    "manifestUrl": "https://github.com/SquirrelCorporation/SquirrelServersManager-Plugins/releases/download/latest/sample-plugin.tar.gz",
+    "manifestUrl": "https://raw.githubusercontent.com/SquirrelCorporation/SquirrelServersManager-Plugins/refs/heads/master/sample-plugin/manifest.json"
   },
   {
     "id": "todo-tasks-manager",
@@ -16,8 +16,8 @@
     "version": "1.0.0",
     "description": "A plugin to manage todo tasks",
     "author": "Squirrel",
-    "iconUrl": "https://example.com/plugins/todo-tasks-manager/icon.svg",
-    "manifestUrl": "https://example.com/plugins/minecraft/manifest.json",
+    "iconUrl": "https://raw.githubusercontent.com/SquirrelCorporation/SquirrelServersManager-Plugins/refs/heads/master/todo-tasks-manager/public/icon.svg",
+    "manifestUrl": "https://raw.githubusercontent.com/SquirrelCorporation/SquirrelServersManager-Plugins/refs/heads/master/todo-tasks-manager/manifest.json",
     "packageUrl": "https://github.com/SquirrelCorporation/SquirrelServersManager-Plugins/releases/download/latest/todo-tasks-manager.tar.gz",
     "checksumUrl": "https://github.com/SquirrelCorporation/SquirrelServersManager-Plugins/releases/download/latest/todo-tasks-manager.tar.gz.sha256"
   }
