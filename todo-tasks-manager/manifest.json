@@ -5,6 +5,7 @@
   "description": "A simple todo tasks manager plugin with its own database",
   "entryPoint": "dist/index.js",
   "staticDir": "public",
+  "icon": "client/icon.svg",
   "database": "todo_plugin",
   "client": {
     "remoteEntryRelativePath": "public/client/remoteEntry.js",

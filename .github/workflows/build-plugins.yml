@@ -1,0 +1,102 @@
+name: Build Changed Plugins (Dynamic)
+
+on:
+  push:
+    branches:
+      - main # Or your default branch
+
+jobs:
+  discover_plugins:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.find_plugins.outputs.matrix }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Find plugins with manifest.json
+        id: find_plugins
+        run: |
+          PLUGINS_JSON="[]"
+          # Find directories directly under root containing manifest.json
+          find . -maxdepth 2 -name manifest.json -printf '%h\n' | sed 's|^\./||' | while read dir; do
+            # Determine build command
+            BUILD_CMD="npm run build" # Default
+            if [[ -f "$dir/build.sh" ]]; then
+              BUILD_CMD="./build.sh"
+            elif ! grep -q '"build":' "$dir/package.json"; then
+               echo "Warning: No build script found in $dir/package.json and no build.sh found. Skipping build command."
+               BUILD_CMD="echo 'No build command configured'" # Fallback safely
+            fi
+            # Add to JSON array (simple jq append)
+            PLUGINS_JSON=$(echo "$PLUGINS_JSON" | jq --arg name "$dir" --arg cmd "$BUILD_CMD" '. + [{"name": $name, "build_cmd": $cmd}]')
+          done
+          echo "matrix=$(echo $PLUGINS_JSON | jq -c .)" >> $GITHUB_OUTPUT
+          echo "Discovered plugins: $(echo $PLUGINS_JSON | jq -c .)"
+
+  build_and_package:
+    needs: discover_plugins
+    if: ${{ needs.discover_plugins.outputs.matrix != '[]' }} # Only run if plugins were found
+    runs-on: ubuntu-latest
+    strategy:
+      matrix: ${{ fromJSON(needs.discover_plugins.outputs.matrix) }}
+      fail-fast: false # Allow other plugin builds to continue if one fails
+
+    steps:
+      - name: Checkout code
+        # Need full history to diff against merge base
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for changes in ${{ matrix.name }}
+        id: check_changes
+        run: |
+          # Compare HEAD with the base of the push/PR (merge base with main)
+          git diff --quiet ${{ github.event.before }} ${{ github.sha }} -- ${{ matrix.name }}/ || echo "changed=true" >> $GITHUB_OUTPUT
+          # For first push to main, compare with parent commit
+          # Note: This diff logic might need refinement based on your branching strategy
+        shell: bash
+
+      # Only proceed if changes were detected OR if it's a manual trigger/first push (where before is 000...)
+      - name: Set up Node.js
+        if: steps.check_changes.outputs.changed == 'true' || github.event.before == '0000000000000000000000000000000000000000'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: '${{ matrix.name }}/package-lock.json'
+
+      # No need to check for manifest.json here, discovery job already did that
+      - name: Build ${{ matrix.name }}
+        if: steps.check_changes.outputs.changed == 'true' || github.event.before == '0000000000000000000000000000000000000000'
+        working-directory: ./${{ matrix.name }}
+        run: |
+          echo "Installing dependencies for ${{ matrix.name }}..."
+          npm ci
+          echo "Building ${{ matrix.name }}..."
+          ${{ matrix.build_cmd }} # Use dynamic build command
+
+      - name: Package ${{ matrix.name }}
+        if: steps.check_changes.outputs.changed == 'true' || github.event.before == '0000000000000000000000000000000000000000'
+        working-directory: ./${{ matrix.name }}
+        run: |
+          echo "Running package script for ${{ matrix.name }}..."
+          # Ensure package script exists before running
+          if grep -q '"package":' package.json; then
+             npm run package
+          else
+             echo "Error: 'package' script not found in ${{ matrix.name }}/package.json"
+             exit 1
+          fi
+
+      - name: Upload ${{ matrix.name }} artifact
+        if: steps.check_changes.outputs.changed == 'true' || github.event.before == '0000000000000000000000000000000000000000'
+        uses: actions/upload-artifact@v4
+        with:
+          name: plugin-${{ matrix.name }}
+          # Assumes npm run package outputs files to the root
+          path: |
+            ${{ matrix.name }}.tar.gz
+            ${{ matrix.name }}.tar.gz.sha256
+          retention-days: 7 
