@@ -8,7 +8,7 @@
     "watch:server": "tsc -w",
     "build:client": "webpack --mode production",
     "watch:client": "webpack --watch --mode development",
-    "build": "./build.sh",
+    "build": "npm run build:server && npm run build:client",
     "watch": "npm-run-all --parallel watch:server watch:client",
     "clean": "rm -rf dist public/client ${npm_package_name}-*.tar.gz ${npm_package_name}-*.sha256",
     "prepackage": "npm run clean && npm run build && npm install --omit=dev",
