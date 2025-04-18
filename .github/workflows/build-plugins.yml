@@ -1,9 +1,9 @@
-name: Build Changed Plugins (Dynamic)
+name: Build and Publish Plugins to GitHub Packages
 
 on:
   push:
     branches:
-      - master
+      - master # Reverted trigger to master branch
 
 jobs:
   discover_plugins:
@@ -46,34 +46,39 @@ jobs:
           echo "$MATRIX_JSON_OBJ" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
           echo "Discovered plugins matrix output object: $MATRIX_JSON_OBJ"
-        shell: bash # Ensure bash is used for process substitution
+        shell: bash
 
   build_and_package:
     needs: discover_plugins
-    if: ${{ needs.discover_plugins.outputs.matrix != 'null' && fromJSON(needs.discover_plugins.outputs.matrix).include[0] != null }} # Check if include array is not empty
+    if: ${{ needs.discover_plugins.outputs.matrix != 'null' && fromJSON(needs.discover_plugins.outputs.matrix).include[0] != null }}
     runs-on: ubuntu-latest
+    # Add permissions for GitHub Packages
+    permissions:
+      contents: read # Needed for checkout
+      packages: write # Needed to publish packages
     strategy:
-      matrix: ${{ fromJSON(needs.discover_plugins.outputs.matrix) }} # Use the output object directly
-      fail-fast: false # Allow other plugin builds to continue if one fails
+      matrix: ${{ fromJSON(needs.discover_plugins.outputs.matrix) }}
+      fail-fast: false
 
     steps:
       - name: Checkout code
-        # Need full history to diff against merge base
+        # Need full history to diff against merge base for change detection
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
+      # Reintroduce change detection
       - name: Check for changes in ${{ matrix.name }}
         id: check_changes
         run: |
-          # Compare HEAD with the base of the push/PR (merge base with master)
+          echo "Checking for changes in ${{ matrix.name }} between ${{ github.event.before }} and ${{ github.sha }}"
+          # Compare HEAD with the base of the push (merge base with master)
           git diff --quiet ${{ github.event.before }} ${{ github.sha }} -- ${{ matrix.name }}/ || echo "changed=true" >> $GITHUB_OUTPUT
-          # For first push to master, compare with parent commit
           # Note: This diff logic might need refinement based on your branching strategy
         shell: bash
 
-      # Only proceed if changes were detected OR if it's a manual trigger/first push (where before is 000...)
       - name: Set up Node.js
+        # Run only if changes were detected OR if it's the first push (before is 000...)
         if: steps.check_changes.outputs.changed == 'true' || github.event.before == '0000000000000000000000000000000000000000'
         uses: actions/setup-node@v4
         with:
@@ -81,7 +86,16 @@ jobs:
           cache: 'npm'
           cache-dependency-path: '${{ matrix.name }}/package-lock.json'
 
-      # No need to check for manifest.json here, discovery job already did that
+      - name: Extract package version
+        # Run only if changes were detected OR if it's the first push
+        if: steps.check_changes.outputs.changed == 'true' || github.event.before == '0000000000000000000000000000000000000000'
+        id: get_version
+        working-directory: ./${{ matrix.name }}
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Extracted version: $VERSION"
+
       - name: Build ${{ matrix.name }}
         if: steps.check_changes.outputs.changed == 'true' || github.event.before == '0000000000000000000000000000000000000000'
         working-directory: ./${{ matrix.name }}
@@ -89,14 +103,13 @@ jobs:
           echo "Installing dependencies for ${{ matrix.name }}..."
           npm ci
           echo "Building ${{ matrix.name }}..."
-          ${{ matrix.build_cmd }} # Use dynamic build command
+          ${{ matrix.build_cmd }}
 
       - name: Package ${{ matrix.name }}
         if: steps.check_changes.outputs.changed == 'true' || github.event.before == '0000000000000000000000000000000000000000'
         working-directory: ./${{ matrix.name }}
         run: |
           echo "Running package script for ${{ matrix.name }}..."
-          # Ensure package script exists before running
           if grep -q '"package":' package.json; then
              npm run package
           else
@@ -104,17 +117,32 @@ jobs:
              exit 1
           fi
 
-      - name: List root directory before upload
+      - name: List root directory before publish
         if: steps.check_changes.outputs.changed == 'true' || github.event.before == '0000000000000000000000000000000000000000'
         run: ls -la
 
-      - name: Upload ${{ matrix.name }} artifact
+      # Replace Upload Artifact with Publish to GitHub Packages
+      - name: Publish ${{ matrix.name }} to GitHub Packages
         if: steps.check_changes.outputs.changed == 'true' || github.event.before == '0000000000000000000000000000000000000000'
-        uses: actions/upload-artifact@v4
-        with:
-          name: plugin-${{ matrix.name }}
-          # Assumes npm run package outputs files to the root
-          path: |
-            ${{ matrix.name }}.tar.gz
-            ${{ matrix.name }}.tar.gz.sha256
-          retention-days: 7 
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PLUGIN_NAME: ${{ matrix.name }}
+          PLUGIN_VERSION: ${{ steps.get_version.outputs.version }}
+          OWNER: ${{ github.repository_owner }}
+          REPO_NAME: ${{ github.event.repository.name }}
+        run: |
+          TARBALL="${PLUGIN_NAME}.tar.gz"
+          CHECKSUM="${PLUGIN_NAME}.tar.gz.sha256"
+          PACKAGE_URL="https://maven.pkg.github.com/${OWNER}/${REPO_NAME}/${PLUGIN_NAME}/${PLUGIN_VERSION}"
+
+          echo "Uploading $TARBALL to ${PACKAGE_URL}/${TARBALL}"
+          curl -X PUT -u "${OWNER}:${GITHUB_TOKEN}" \
+               "${PACKAGE_URL}/${TARBALL}" \
+               --upload-file "${TARBALL}"
+
+          echo "Uploading $CHECKSUM to ${PACKAGE_URL}/${CHECKSUM}"
+          curl -X PUT -u "${OWNER}:${GITHUB_TOKEN}" \
+               "${PACKAGE_URL}/${CHECKSUM}" \
+               --upload-file "${CHECKSUM}"
+
+  # Removed the create_release job 
