@@ -80,6 +80,8 @@ jobs:
         run: |
           echo "Installing dependencies for ${{ matrix.name }}..."
           npm ci
+          echo "Inspecting node_modules/debug after npm ci:"
+          ls -la ./${{ matrix.name }}/node_modules/debug || echo "node_modules/debug not found after npm ci"
           echo "Building ${{ matrix.name }}..."
           ${{ matrix.build_cmd }}
 
