@@ -66,9 +66,9 @@ jobs:
       - name: Check for changes in ${{ matrix.name }}
         id: check_changes
         run: |
-          # Compare HEAD with the base of the push/PR (merge base with main)
+          # Compare HEAD with the base of the push/PR (merge base with master)
           git diff --quiet ${{ github.event.before }} ${{ github.sha }} -- ${{ matrix.name }}/ || echo "changed=true" >> $GITHUB_OUTPUT
-          # For first push to main, compare with parent commit
+          # For first push to master, compare with parent commit
           # Note: This diff logic might need refinement based on your branching strategy
         shell: bash
 
