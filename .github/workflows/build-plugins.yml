@@ -40,8 +40,12 @@ jobs:
           done < <(find . -maxdepth 2 -name manifest.json -printf '%h\n' | sed 's|^\./||')
 
           echo "Final PLUGINS_JSON: $PLUGINS_JSON"
-          echo "matrix=$(echo $PLUGINS_JSON | jq -c .)" >> $GITHUB_OUTPUT
-          echo "Discovered plugins matrix output: $(echo $PLUGINS_JSON | jq -c .)"
+          # Ensure the final output is compact JSON and set robustly
+          MATRIX_JSON=$(echo "$PLUGINS_JSON" | jq -c .)
+          echo "matrix<<EOF" >> $GITHUB_OUTPUT
+          echo "$MATRIX_JSON" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          echo "Discovered plugins matrix output: $MATRIX_JSON"
         shell: bash # Ensure bash is used for process substitution
 
   build_and_package:
