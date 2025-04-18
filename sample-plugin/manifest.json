@@ -1,7 +1,7 @@
 {
   "id": "sample-plugin",
   "name": "sample-plugin",
-  "version": "0.0.2",
+  "version": "0.0.1",
   "description": "A sample plugin for SquirrelServersManager",
   "entryPoint": "./dist/index.js",
   "staticDir": "public",

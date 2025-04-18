@@ -1,7 +1,6 @@
 {
   "name": "todo-tasks-manager",
-  "version": "1.0.0",
-  "description": "A simple todo tasks manager plugin with its own database",
+  "version": "0.0.1",
   "main": "dist/index.js",
   "scripts": {
     "build:server": "tsc",

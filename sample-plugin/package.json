@@ -1,7 +1,6 @@
 {
   "name": "sample-plugin",
   "version": "1.0.0",
-  "description": "Sample plugin for SquirrelServersManager",
   "main": "dist/index.js",
   "scripts": {
     "build:server": "tsc -p tsconfig.json",
