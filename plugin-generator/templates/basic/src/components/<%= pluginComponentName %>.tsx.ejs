@@ -1,0 +1,18 @@
+import React from 'react';
+// Example: If you need components shared from the host application:
+// import { Button } from '@/components'; // This relies on host exposing '@/components'
+
+const <%= pluginComponentName %>: React.FC = () => {
+  return (
+    <div style={{ border: '1px dashed green', padding: '15px', margin: '10px' }}>
+      <h2>Hello from <%= pluginName %> Plugin!</h2>
+      <p>This is the default component for the plugin.</p>
+      <p>Plugin ID: <%= pluginId %></p>
+      {/* Example of using a shared component (if host exposes it) */}
+      {/* <Button type="primary">Shared Button Example</Button> */}
+      {/* Add your plugin's UI elements here */}
+    </div>
+  );
+};
+
+export default <%= pluginComponentName %>; 

@@ -1,0 +1,30 @@
+{
+  "name": "@squirrel-servers-manager/plugin-generator",
+  "version": "0.0.1",
+  "description": "CLI tool to generate Squirrel Servers Manager plugins",
+  "main": "dist/index.js",
+  "bin": {
+    "generate-ssm-plugin": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "dev": "tsc -w -p tsconfig.json",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "commander": "^13.1.0",
+    "ejs": "^3.1.10",
+    "fs-extra": "^11.3.0"
+  },
+  "devDependencies": {
+    "@types/commander": "^2.12.0",
+    "@types/ejs": "^3.1.5",
+    "@types/fs-extra": "^11.0.4",
+    "@types/node": "^22.14.1",
+    "typescript": "^5.8.3"
+  }
+}

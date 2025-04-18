@@ -1,0 +1,23 @@
+[
+  {
+    "id": "sample-plugin",
+    "name": "Sample Plugin",
+    "version": "1.0.0",
+    "description": "A sample plugin for testing purposes",
+    "author": "Squirrel",
+    "iconUrl": "https://example.com/plugins/sample-plugin/icon.svg",
+    "packageUrl": "https://example.com/plugins/minecraft/minecraft-server-1.0.0.tar.gz",
+    "manifestUrl": "https://example.com/plugins/minecraft/manifest.json",
+    "checksumUrl": "https://example.com/plugins/minecraft/checksum.sha256",
+    "checksum": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "id": "todo-tasks-manager",
+    "name": "Todo Tasks Manager",
+    "version": "1.0.0",
+    "description": "A plugin to manage todo tasks",
+    "author": "Squirrel",
+    "iconUrl": "https://example.com/plugins/todo-tasks-manager/icon.svg",
+    "packageUrl": "https://example.com/plugins/todo-tasks-manager/todo-tasks-manager-1.0.0.tar.gz"
+  }
+]

@@ -1,0 +1,19 @@
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+// Import the main component using a dynamic path resolved by Webpack/TS
+import <%= pluginComponentName %> from '../components/<%= pluginComponentName %>';
+
+// Basic render for standalone testing or if needed by the host
+// This might not be strictly necessary if the component is only loaded via Module Federation
+const rootElement = document.getElementById('plugin-root-<%= pluginId %>'); // Use a unique ID
+if (rootElement) {
+  const root = ReactDOM.createRoot(rootElement);
+  root.render(
+    <React.StrictMode>
+      <<%= pluginComponentName %> />
+    </React.StrictMode>
+  );
+}
+
+// Export the component for Module Federation or direct import
+export default <%= pluginComponentName %>; 
