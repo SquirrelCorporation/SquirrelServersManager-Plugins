@@ -19,8 +19,8 @@ jobs:
         run: |
           echo "Starting plugin discovery..."
           PLUGINS_JSON="[]"
-          # Find directories directly under root containing manifest.json
-          find . -maxdepth 2 -name manifest.json -printf '%h\n' | sed 's|^\./||' | while read dir; do
+          # Use process substitution to avoid subshell for the while loop
+          while IFS= read -r dir; do
             echo "Processing directory: $dir"
             # Determine build command
             BUILD_CMD="npm run build" # Default
@@ -37,11 +37,12 @@ jobs:
             echo "  Adding $dir to JSON..."
             PLUGINS_JSON=$(echo "$PLUGINS_JSON" | jq --arg name "$dir" --arg cmd "$BUILD_CMD" '. + [{"name": $name, "build_cmd": $cmd}]')
             echo "  Current PLUGINS_JSON: $PLUGINS_JSON"
-          done
+          done < <(find . -maxdepth 2 -name manifest.json -printf '%h\n' | sed 's|^\./||')
+
           echo "Final PLUGINS_JSON: $PLUGINS_JSON"
           echo "matrix=$(echo $PLUGINS_JSON | jq -c .)" >> $GITHUB_OUTPUT
           echo "Discovered plugins matrix output: $(echo $PLUGINS_JSON | jq -c .)"
-        shell: bash
+        shell: bash # Ensure bash is used for process substitution
 
   build_and_package:
     needs: discover_plugins
