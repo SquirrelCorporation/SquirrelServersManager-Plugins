@@ -10,8 +10,8 @@
     "build": "npm run build:server && npm run build:client",
     "watch": "npm-run-all --parallel watch:server watch:client",
     "clean": "rm -rf dist public/client ${npm_package_name}-*.tar.gz ${npm_package_name}-*.sha256",
-    "prepackage": "npm run clean && npm run build",
-    "package": "tar czf ../${npm_package_name}.tar.gz --exclude='src' --exclude='*.tsbuildinfo' --exclude='webpack.config.js' --exclude='tsconfig.json' --exclude='.git' --exclude='.gitignore' --exclude='${npm_package_name}-*.tar.gz' --exclude='${npm_package_name}-*.sha256' manifest.json package.json dist public node_modules && shasum -a 256 ../${npm_package_name}.tar.gz > ../${npm_package_name}.tar.gz.sha256",
+    "prepackage": "npm run clean && npm run build && npm install --omit=dev",
+    "package": "tar czf ../${npm_package_name}.tar.gz --exclude='./src' --exclude='*.tsbuildinfo' --exclude='webpack.config.js' --exclude='tsconfig.json' --exclude='.git' --exclude='.gitignore' --exclude='${npm_package_name}-*.tar.gz' --exclude='${npm_package_name}-*.sha256' manifest.json package.json dist public node_modules && shasum -a 256 ../${npm_package_name}.tar.gz > ../${npm_package_name}.tar.gz.sha256",
     "postpackage": "npm install"
   },
   "author": "SquirrelServersManager",
