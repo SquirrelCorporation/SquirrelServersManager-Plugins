@@ -39,21 +39,21 @@ jobs:
             echo "  Current PLUGINS_JSON: $PLUGINS_JSON"
           done < <(find . -maxdepth 2 -name manifest.json -printf '%h\n' | sed 's|^\./||')
 
-          echo "Final PLUGINS_JSON: $PLUGINS_JSON"
-          # Ensure the final output is compact JSON and set robustly
-          MATRIX_JSON=$(echo "$PLUGINS_JSON" | jq -c .)
+          echo "Final PLUGINS_JSON array: $PLUGINS_JSON"
+          # Wrap the array in an object with the key "include" for the matrix
+          MATRIX_JSON_OBJ=$(echo "$PLUGINS_JSON" | jq '{"include": .}' | jq -c .)
           echo "matrix<<EOF" >> $GITHUB_OUTPUT
-          echo "$MATRIX_JSON" >> $GITHUB_OUTPUT
+          echo "$MATRIX_JSON_OBJ" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
-          echo "Discovered plugins matrix output: $MATRIX_JSON"
+          echo "Discovered plugins matrix output object: $MATRIX_JSON_OBJ"
         shell: bash # Ensure bash is used for process substitution
 
   build_and_package:
     needs: discover_plugins
-    if: ${{ needs.discover_plugins.outputs.matrix != '[]' }} # Only run if plugins were found
+    if: ${{ needs.discover_plugins.outputs.matrix != 'null' && fromJSON(needs.discover_plugins.outputs.matrix).include[0] != null }} # Check if include array is not empty
     runs-on: ubuntu-latest
     strategy:
-      matrix: ${{ fromJSON(needs.discover_plugins.outputs.matrix) }}
+      matrix: ${{ fromJSON(needs.discover_plugins.outputs.matrix) }} # Use the output object directly
       fail-fast: false # Allow other plugin builds to continue if one fails
 
     steps:
