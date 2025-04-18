@@ -3,7 +3,7 @@ name: Build Changed Plugins (Dynamic)
 on:
   push:
     branches:
-      - main # Or your default branch
+      - master
 
 jobs:
   discover_plugins:
