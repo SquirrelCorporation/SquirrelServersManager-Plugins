@@ -1,16 +1,18 @@
 # Todo Tasks Manager Plugin
 
-A simple plugin for managing todo tasks with its own MongoDB database.
+A plugin for managing tasks using a Kanban board interface, backed by its own MongoDB database.
 
 ## Features
 
-- Create, read, update, and delete todo tasks
-- Mark tasks as completed/incomplete
-- Set priority levels (low, medium, high)
-- Set due dates for tasks
-- Filter tasks by status (all, active, completed)
-- Responsive UI
-- Integrated logging through the plugin system
+- **Kanban Board Interface:** Visualize tasks in columns representing their status (e.g., Todo, In Progress, Done).
+- **Drag-and-Drop:** Easily move tasks between status columns and reorder tasks within a column.
+- **Task Management:** Create, read, update, and delete tasks and subtasks.
+- **Task Details:** Set priority, due dates, descriptions, and tags via an editing modal.
+- **Subtask Tracking:** View subtask progress indicators on parent tasks and manage subtasks within the edit modal.
+- **Archiving:** Archive completed or irrelevant tasks to keep the board clean.
+- **Tag Filtering:** Filter visible tasks by tags.
+- **Responsive UI:** Adapts to different screen sizes.
+- **Integrated Logging:** Leverages the plugin system's logger.
 
 ## Installation
 
@@ -25,24 +27,31 @@ A simple plugin for managing todo tasks with its own MongoDB database.
 
 ## Usage
 
-Access the Todo Tasks Manager at:
-```
-http://your-server-url/static-plugins/todo-tasks-manager/
-```
-
-The API endpoints are available at:
+Access the Todo Tasks Manager Kanban board at:
 ```
 http://your-server-url/plugins/todo-tasks-manager/
 ```
 
+The API endpoints are available under the base path:
+```
+http://your-server-url/api/plugins/todo-tasks-manager/
+```
+
 ## API Endpoints
 
-- `GET /plugins/todo-tasks-manager/` - Get all todos
-- `GET /plugins/todo-tasks-manager/:id` - Get a specific todo by ID
-- `POST /plugins/todo-tasks-manager/` - Create a new todo
-- `PUT /plugins/todo-tasks-manager/:id` - Update a todo by ID
-- `DELETE /plugins/todo-tasks-manager/:id` - Delete a todo by ID
-- `PATCH /plugins/todo-tasks-manager/toggle/:id` - Toggle the completed status of a todo
+- `GET /` - Get all active (non-archived) todos, typically sorted by status and order. Supports filtering (e.g., `?tags=tag1,tag2`).
+- `GET /?archived=true` - Get all archived todos.
+- `GET /:id` - Get a specific todo by ID, including its subtasks.
+- `POST /` - Create a new todo. Accepts fields like `title`, `description`, `tags`, `dueDate`, `priority`, and optionally `status` (defaults to 'Todo').
+- `PUT /:id` - Update a todo by ID. Can update `title`, `description`, `tags`, `dueDate`, `priority`, `status`, `isArchived`, etc.
+- `DELETE /:id` - Delete a todo by ID (including its subtasks).
+- `PATCH /reorder` - Reorder tasks within a specific status column. Expects a body like `{ "status": "InProgress", "updates": [{ "_id": "task1_id", "order": 0 }, { "_id": "task2_id", "order": 1 }] }`.
+- `POST /:parentId/subtasks` - Create a new subtask for a given parent task ID.
+- `GET /:parentId/subtasks` - Get all subtasks for a given parent task ID.
+- `PUT /subtasks/:id` - Update a specific subtask by its ID.
+- `DELETE /subtasks/:id` - Delete a specific subtask by its ID.
+
+*(Note: Specific implementation details like exact query parameters or request/response bodies might vary slightly.)*
 
 ## Development
 
@@ -63,7 +72,18 @@ To work on this plugin:
 
 ## Database
 
-This plugin uses a MongoDB database named `todo_plugin`. The database connection is provided by the plugin system based on the configuration in the manifest.json file.
+This plugin uses a MongoDB database named `todo_plugin`. The database connection is provided by the plugin system. Key fields in the `todos` collection include:
+
+- `title` (String)
+- `description` (String)
+- `status` (String, Enum: 'Todo', 'InProgress', 'Done', etc. - Indexed)
+- `order` (Number - for ordering within a status)
+- `tags` (Array of Strings)
+- `dueDate` (Date)
+- `priority` (String, Enum: 'low', 'medium', 'high')
+- `isArchived` (Boolean, Default: false - Indexed)
+- `parentId` (ObjectId, for subtasks)
+- `createdAt`, `updatedAt` (Timestamps)
 
 ## Logging
 

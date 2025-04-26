@@ -61,15 +61,66 @@ class TodoPlugin {
   async registerRoutes(): Promise<RouteDefinition[]> {
     // Ensure the Mongoose model is available before defining routes that use it.
     if (!this.todoModel) {
+      this.logger?.error(
+        "Todo model not initialized before registerRoutes called."
+      );
       throw new Error("Todo model not initialized");
     }
     // Ensure the logger is available before defining routes that use it.
     if (!this.logger) {
+      // This case is less likely if register succeeded, but good practice
+      console.error("Logger not initialized before registerRoutes called.");
       throw new Error("Logger not initialized");
+    }
+
+    // Access the connection from the model
+    const connection = this.todoModel.db;
+
+    // Check connection state and wait if necessary
+    // readyState: 0 = disconnected, 1 = connected, 2 = connecting, 3 = disconnecting
+    if (connection.readyState !== 1) {
+      this.logger.warn(
+        `DB connection not ready (state: ${connection.readyState}). Waiting...`
+      );
+      try {
+        // Wait for the 'connected' event or timeout
+        await new Promise<void>((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            reject(
+              new Error("Timeout waiting for DB connection in registerRoutes")
+            );
+          }, 15000); // 15-second timeout
+
+          connection.once("connected", () => {
+            clearTimeout(timeout);
+            this.logger?.info(
+              "DB connection ready after waiting in registerRoutes."
+            );
+            resolve();
+          });
+
+          connection.once("error", (err) => {
+            clearTimeout(timeout);
+            this.logger?.error(
+              `DB connection error while waiting in registerRoutes: ${err}`
+            );
+            reject(err);
+          });
+
+          // If already connecting (state 2), the 'connected' listener above will handle it.
+          // If disconnected/disconnecting (0 or 3), this might not resolve without external action.
+        });
+      } catch (error) {
+        this.logger.error(`Error waiting for DB connection: ${error}`);
+        throw error; // Re-throw to prevent route registration with bad connection
+      }
+    } else {
+      this.logger.info("DB connection already ready in registerRoutes.");
     }
 
     // Call the function (likely in ./routes.ts) that generates the route definitions,
     // passing the initialized model and logger.
+    this.logger.info("Creating API routes for Todo plugin...");
     return createRoutes(this.todoModel, this.logger);
   }
 }
