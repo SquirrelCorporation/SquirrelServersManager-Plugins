@@ -14,7 +14,8 @@
     "resolveJsonModule": true,
     "paths": {
       "../../plugin-types": ["../plugin-types"]
-    }
+    },
+    "types": ["jest"]
   },
   "include": [
     "src/index.ts",
