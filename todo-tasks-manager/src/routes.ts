@@ -3,7 +3,6 @@ import { Model } from "mongoose";
 import { RouteDefinition, PluginLogger } from "./plugin-types";
 import { ITodo, KANBAN_STATUSES } from "./models/todo";
 import mongoose from "mongoose";
-
 // Function to create routes with the Todo model and logger
 export function createRoutes(
   TodoModel: Model<ITodo>,
@@ -378,7 +377,7 @@ export function createRoutes(
       path: "/:id",
       method: "delete",
       handler: async (req: Request, res: Response) => {
-        const session = await mongoose.startSession(); // Use transactions for atomicity
+        const session = await TodoModel.db.startSession(); // Use transactions for atomicity
         session.startTransaction();
         try {
           const id = req.params.id;
@@ -459,7 +458,7 @@ export function createRoutes(
           });
         }
 
-        const session = await mongoose.startSession();
+        const session = await TodoModel.db.startSession();
         session.startTransaction();
         try {
           logger.info(

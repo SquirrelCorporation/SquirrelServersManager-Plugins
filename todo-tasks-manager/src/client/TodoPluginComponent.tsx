@@ -1017,7 +1017,7 @@ const TodoPluginComponent: React.FC = () => {
           fontWeight: "600",
         }}
       >
-        Task Kanban Board
+        Squirrel Board
       </h2>
 
       <Space.Compact style={{ marginBottom: 20, width: "100%" }}>
