@@ -22,14 +22,19 @@ export function createRoutes(
 
   // Define the routes for the Todo API
   const routes: RouteDefinition[] = [
-    // GET / - Fetch top-level todos, sorted by order
+    // GET / - Fetch top-level todos, sorted by order, including subtasks
     {
       path: "/",
       method: "get",
       handler: async (req: Request, res: Response) => {
         try {
-          const filter: any = { parentId: null };
-          const tagsQuery = req.query.tags as string; // e.g., "work,urgent"
+          const filter: any = { parentId: null }; // Filter for top-level tasks
+          const tagsQuery = req.query.tags as string;
+          const includeArchived = req.query.includeArchived === "true";
+
+          if (!includeArchived) {
+            filter.isArchived = { $ne: true }; // Exclude archived by default
+          }
 
           if (tagsQuery) {
             const tagsToFilter = tagsQuery
@@ -37,37 +42,57 @@ export function createRoutes(
               .map((tag) => tag.trim())
               .filter(Boolean);
             if (tagsToFilter.length > 0) {
-              // Match tasks containing ANY of the specified tags
               filter.tags = { $in: tagsToFilter };
               logger.info(
-                `Filtering top-level todos by tags: ${tagsToFilter.join(", ")}`
+                `Filtering todos by tags: ${tagsToFilter.join(", ")}`
               );
             } else {
-              logger.info("Fetching top-level todos (no tag filter specified)");
+              logger.info("Fetching todos (no tag filter specified)");
             }
           } else {
-            logger.info("Fetching top-level todos (no tag filter specified)");
+            logger.info("Fetching todos (no tag filter specified)");
           }
 
-          const todos = await TodoModel.find(filter)
-            .sort({ order: 1, createdAt: -1 }) // Sort primarily by order, then by creation date
+          // 1. Fetch top-level todos matching the filter
+          const topLevelTodosRaw = await TodoModel.find(filter)
+            .sort({ order: 1, createdAt: -1 })
+            .lean() // Use .lean() for performance when modifying results
             .exec();
-          logger.info(`Found ${todos.length} top-level todos matching filter`);
+
+          logger.info(
+            `Found ${topLevelTodosRaw.length} top-level todos matching filter. Fetching subtasks...`
+          );
+
+          // 2. Fetch subtasks for each top-level todo
+          const todosWithSubtasks = await Promise.all(
+            topLevelTodosRaw.map(async (todo) => {
+              const subtasks = await TodoModel.find({ parentId: todo._id })
+                .sort({ order: 1, createdAt: 1 })
+                .lean() // Use .lean() here too
+                .exec();
+              // Return the todo with its fetched subtasks
+              return { ...todo, subtasks: subtasks || [] }; // Ensure subtasks is always an array
+            })
+          );
+
+          logger.info(
+            `Finished fetching subtasks. Returning ${todosWithSubtasks.length} todos.`
+          );
           res.json({
             success: true,
-            data: todos,
+            data: todosWithSubtasks,
           });
         } catch (error: any) {
-          logger.error(`Failed to fetch top-level todos: ${error.message}`);
+          logger.error(`Failed to fetch todos with subtasks: ${error.message}`);
           res.status(500).json({
             success: false,
-            message: "Failed to fetch top-level todos",
+            message: "Failed to fetch todos",
             error: error.message,
           });
         }
       },
       description:
-        "Get all top-level todos, sorted by order, optionally filtering by tags",
+        "Get all top-level todos (optionally filtered by tags, including archived status), including their subtasks, sorted by order.",
     },
     // GET /:parentId/subtasks - Fetch subtasks, sorted by order
     {
@@ -377,20 +402,16 @@ export function createRoutes(
       path: "/:id",
       method: "delete",
       handler: async (req: Request, res: Response) => {
-        const session = await TodoModel.db.startSession(); // Use transactions for atomicity
-        session.startTransaction();
         try {
           const id = req.params.id;
           logger.info(
             `Attempting to delete todo with ID: ${id} and its subtasks`
           );
 
-          const todo = await TodoModel.findById(id).session(session).exec();
+          const todo = await TodoModel.findById(id).exec();
 
           if (!todo) {
             logger.warn(`Todo with ID ${id} not found for deletion`);
-            await session.abortTransaction();
-            session.endSession();
             return res.status(404).json({
               success: false,
               message: "Todo not found",
@@ -400,17 +421,14 @@ export function createRoutes(
           // Find and delete subtasks
           const subtaskDeletionResult = await TodoModel.deleteMany({
             parentId: id,
-          })
-            .session(session)
-            .exec();
+          }).exec();
           logger.info(
             `Deleted ${subtaskDeletionResult.deletedCount} subtasks for parent ID ${id}`
           );
 
           // Delete the parent todo itself
-          await TodoModel.deleteOne({ _id: id }).session(session).exec(); // Use deleteOne instead of todo.deleteOne() within transaction
+          await TodoModel.deleteOne({ _id: id }).exec();
 
-          await session.commitTransaction();
           logger.info(`Successfully deleted todo ${id} and its subtasks.`);
           res.json({
             success: true,
@@ -420,14 +438,11 @@ export function createRoutes(
           logger.error(
             `Failed to delete todo ${req.params.id} or its subtasks: ${error.message}`
           );
-          await session.abortTransaction();
           res.status(500).json({
             success: false,
             message: "Failed to delete todo and/or its subtasks",
             error: error.message,
           });
-        } finally {
-          session.endSession();
         }
       },
       description: "Delete a todo and all its subtasks by ID",
@@ -458,8 +473,6 @@ export function createRoutes(
           });
         }
 
-        const session = await TodoModel.db.startSession();
-        session.startTransaction();
         try {
           logger.info(
             `Starting bulk reorder for status '${status}' for ${updates.length} items.`
@@ -481,8 +494,7 @@ export function createRoutes(
             };
           });
 
-          const result = await TodoModel.bulkWrite(bulkOps, { session });
-          await session.commitTransaction();
+          const result = await TodoModel.bulkWrite(bulkOps);
 
           logger.info(
             `Bulk reorder for status '${status}' completed. Matched: ${result.matchedCount}, Modified: ${result.modifiedCount}`
@@ -499,14 +511,11 @@ export function createRoutes(
           logger.error(
             `Bulk reorder for status '${status}' failed: ${error.message}`
           );
-          await session.abortTransaction();
           res.status(500).json({
             success: false,
             message: "Failed to reorder tasks",
             error: error.message,
           });
-        } finally {
-          session.endSession();
         }
       },
       description:
