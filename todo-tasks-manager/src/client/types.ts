@@ -15,6 +15,7 @@ export interface Task {
   title: string;
   description?: string; // Keep optional for now
   tags?: string[];
+  priority?: "low" | "medium" | "high"; // Added priority field
   dueDate?: string | null; // Allow null or string
   order: number; // Order within its status column
   status: KanbanStatus; // Use the defined type

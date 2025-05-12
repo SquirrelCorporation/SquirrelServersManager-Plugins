@@ -1,22 +1,23 @@
 import React from "react";
-import { Card, Tag, Tooltip, Button, Space } from "antd"; // Use Antd Card
+import { Card, Tag, Tooltip, Button, Space, Typography, Progress } from "antd";
 import {
   DeleteOutlined,
   HolderOutlined,
   ClockCircleOutlined,
-  PartitionOutlined, // Icon for subtasks
-  InboxOutlined, // Import archive icon
+  UnorderedListOutlined,
+  InboxOutlined,
+  EditOutlined,
+  ArrowUpOutlined,
+  ArrowRightOutlined,
+  ArrowDownOutlined,
+  ExclamationCircleOutlined,
 } from "@ant-design/icons";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Task } from "../types"; // Import Task type
+import { Task, Subtask } from "../types";
 
-// Import the helper function (adjust path if necessary)
-// Assuming isOverdue is exported from the main component or a utils file
-// For now, let's redefine it here for simplicity, but ideally import it.
 const isOverdue = (task: Task): boolean => {
   if (!task.dueDate || task.status === "done") {
-    // Also check if done
     return false;
   }
   try {
@@ -34,10 +35,10 @@ const isOverdue = (task: Task): boolean => {
 interface TaskCardProps {
   task: Task;
   onDelete?: (taskId: string) => void;
-  onEdit?: (task: Task) => void; // Add onEdit prop
-  onArchive?: (taskId: string, isArchived: boolean) => Promise<void>; // Add onArchive prop
-  isDeleting?: boolean; // Added
-  isArchiving?: boolean; // Added
+  onEdit?: (task: Task) => void;
+  onArchive?: (taskId: string, isArchived: boolean) => Promise<void>;
+  isDeleting?: boolean;
+  isArchiving?: boolean;
 }
 
 const TaskCard: React.FC<TaskCardProps> = ({
@@ -45,177 +46,173 @@ const TaskCard: React.FC<TaskCardProps> = ({
   onDelete,
   onEdit,
   onArchive,
-  isDeleting, // Added
-  isArchiving, // Added
+  isDeleting,
+  isArchiving,
 }) => {
   const {
     attributes,
-    listeners, // Drag handle listeners
+    listeners,
     setNodeRef,
     transform,
     transition,
-    isDragging, // Still needed to hide the original element
-  } = useSortable({ id: task._id });
+    isDragging,
+  } = useSortable({ id: task._id, data: { type: "task", task } });
 
-  // Apply transform/transition for sorting animation
-  // Hide the original element when dragging, DragOverlay will show the copy
-  const style = {
+  const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0 : 1, // Hide original when dragging
-    marginBottom: 8,
-    // Remove cursor, background, border, shadow changes related to isDragging
-    // cursor: "grab", // Not strictly needed on the original
-    // backgroundColor: isDragging ? "#fafafa" : "white",
-    // border: isDragging ? "1px dashed #1890ff" : undefined,
-    // boxShadow: isDragging ? "0 2px 8px rgba(0, 0, 0, 0.1)" : undefined,
+    opacity: isDragging ? 0.5 : 1,
+    marginBottom: "12px",
+    borderRadius: "8px",
+    backgroundColor: "#161B22",
+    boxShadow: isDragging
+      ? "0 8px 16px rgba(0,0,0,0.3)"
+      : "0 4px 8px rgba(0,0,0,0.2)",
+    cursor: "grab",
+    border: "1px solid #30363D",
+    padding: "12px",
   };
 
   const overdue = isOverdue(task);
-  const hasSubtasks = task.subtasks && task.subtasks.length > 0;
   const subtaskCount = task.subtasks?.length || 0;
-  // Calculate subtask completion (optional, for progress)
-  // const completedSubtasks = task.subtasks?.filter(st => st.completed).length || 0;
 
-  const handleDeleteClick = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent card click/drag
-    onDelete?.(task._id);
-  };
-
-  // Separate onClick handler for the card itself
   const handleCardClick = () => {
-    onEdit?.(task); // Trigger the onEdit callback with the task
+    onEdit?.(task);
   };
 
-  const handleArchiveClick = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent card click
-    onArchive?.(task._id, !!task.isArchived); // Pass ID and current status
+  const getPriorityProps = () => {
+    switch (task.priority) {
+      case "high":
+        return { icon: <ArrowUpOutlined />, color: "#F59E0B", label: "High" };
+      case "medium":
+        return {
+          icon: <ArrowRightOutlined />,
+          color: "#38BDF8",
+          label: "Medium",
+        };
+      case "low":
+        return { icon: <ArrowDownOutlined />, color: "#34D399", label: "Low" };
+      default:
+        return { icon: null, color: "#8B949E", label: "" };
+    }
   };
+  const priorityProps = getPriorityProps();
 
-  const dragHandleListeners = listeners;
-
-  // Render the card content (can be extracted to a separate component if needed)
-  // This is what DragOverlay will also render
-  const cardContent = (
-    <Card
-      size="small"
-      styles={{
-        body: {
-          padding: "12px 16px",
-          backgroundColor: "#2d3748", // Dark card background
-          borderRadius: "6px",
-        },
-        header: {
-          backgroundColor: "#2d3748", // Dark card background
-          color: "#e2e8f0", // Light text
-          borderBottom: "1px solid #4a5568",
-          padding: "12px 16px",
-        },
-      }}
-      hoverable
-      onClick={handleCardClick}
-      style={{
-        cursor: "pointer",
-        backgroundColor: "#2d3748", // Dark card background
-        border: "1px solid #4a5568", // Darker border
-      }}
-      title={
-        <span
-          style={{
-            color: overdue ? "#fc8181" : "#e2e8f0", // Red for overdue, light for normal
-            fontSize: "14px",
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-          }}
-        >
-          {task.title}
-          {overdue && (
-            <Tooltip
-              title={`Overdue (Due: ${new Date(
-                task.dueDate!
-              ).toLocaleDateString()})`}
-            >
-              <ClockCircleOutlined style={{ color: "#fc8181" }} />
-            </Tooltip>
-          )}
-        </span>
-      }
-      extra={
-        <Space size="small">
-          <Tooltip title="Drag to Reorder">
-            <Button
-              type="text"
-              size="small"
-              icon={<HolderOutlined style={{ color: "#a0aec0" }} />}
-              {...dragHandleListeners}
-              style={{ cursor: "grab", touchAction: "none" }}
-              onClick={(e) => e.stopPropagation()}
-            />
-          </Tooltip>
-          <Tooltip title="Archive Task">
-            <Button
-              type="text"
-              size="small"
-              icon={<InboxOutlined style={{ color: "#a0aec0" }} />}
-              onClick={handleArchiveClick}
-              loading={isArchiving}
-              disabled={isDeleting || isArchiving}
-              data-testid="task-card-archive-button"
-            />
-          </Tooltip>
-          <Tooltip title="Delete Task">
-            <Button
-              type="text"
-              size="small"
-              icon={<DeleteOutlined style={{ color: "#fc8181" }} />}
-              onClick={handleDeleteClick}
-              loading={isDeleting}
-              disabled={isDeleting || isArchiving}
-              data-testid="task-card-delete-button"
-            />
-          </Tooltip>
-        </Space>
-      }
-    >
-      {/* Card Body Content */}
-      <Space direction="vertical" size="middle" style={{ width: "100%" }}>
-        {/* Display Tags */}
-        {task.tags && task.tags.length > 0 && (
-          <div>
-            <Space size={[4, 8]} wrap>
-              {task.tags.map((tag: string) => (
-                <Tag key={tag} color="blue" style={{ borderRadius: "4px" }}>
-                  {tag}
-                </Tag>
-              ))}
-            </Space>
-          </div>
-        )}
-
-        {/* Display Subtask Indicator */}
-        {hasSubtasks && (
-          <Tooltip title={`${subtaskCount} subtask(s)`}>
-            <Space size={4}>
-              <PartitionOutlined style={{ color: "#a0aec0" }} />
-              <span style={{ fontSize: "12px", color: "#a0aec0" }}>
-                {subtaskCount}
-              </span>
-            </Space>
-          </Tooltip>
-        )}
-      </Space>
-    </Card>
-  );
+  const showCoverImagePlaceholder = true;
+  const coverImagePlaceholderStyle: React.CSSProperties = {
+    height: "140px",
+    backgroundColor: "#30363D",
+    borderRadius: "4px 4px 0 0",
+    marginBottom: "10px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    color: "#6E7681",
+  };
 
   return (
-    // The sortable node container
     <div
       ref={setNodeRef}
       style={style}
-      {...attributes} /* Pass attributes but not listeners */
+      {...attributes}
+      {...listeners}
+      onClick={handleCardClick}
     >
-      {cardContent}
+      {showCoverImagePlaceholder && (
+        <div style={coverImagePlaceholderStyle}>Cover Image Area</div>
+      )}
+
+      <div
+        style={{ display: "flex", alignItems: "center", marginBottom: "8px" }}
+      >
+        <Typography.Text
+          style={{
+            color: overdue ? "#EF4444" : "#E6EDF3",
+            fontSize: "15px",
+            fontWeight: 400,
+            lineHeight: "1.4",
+            flexGrow: 1,
+          }}
+        >
+          {task.title}
+        </Typography.Text>
+        {priorityProps.icon && (
+          <Tooltip title={`${priorityProps.label} Priority`}>
+            <span
+              style={{
+                color: priorityProps.color,
+                fontSize: "18px",
+                marginLeft: "8px",
+              }}
+            >
+              {priorityProps.icon}
+            </span>
+          </Tooltip>
+        )}
+      </div>
+
+      {task.description && (
+        <Typography.Paragraph
+          ellipsis={{ rows: 2, expandable: false }}
+          style={{ color: "#8B949E", fontSize: "13px", marginBottom: "10px" }}
+        >
+          {task.description}
+        </Typography.Paragraph>
+      )}
+
+      {task.tags && task.tags.length > 0 && (
+        <div style={{ marginBottom: "10px" }}>
+          <Space size={[4, 4]} wrap>
+            {task.tags.map((tag: string) => (
+              <Tag
+                key={tag}
+                style={{
+                  backgroundColor: "#30363D",
+                  color: "#E6EDF3",
+                  border: "none",
+                  borderRadius: "4px",
+                  fontSize: "11px",
+                  padding: "1px 6px",
+                }}
+              >
+                {tag}
+              </Tag>
+            ))}
+          </Space>
+        </div>
+      )}
+
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginTop: "12px",
+          paddingTop: "8px",
+          borderTop: `1px solid #30363D`,
+        }}
+      >
+        <Space size="middle">
+          {subtaskCount > 0 && (
+            <Tooltip
+              title={`${subtaskCount} ${
+                subtaskCount === 1 ? "subtask" : "subtasks"
+              }`}
+            >
+              <Space align="center" size={4}>
+                <UnorderedListOutlined
+                  style={{ color: "#8B949E", fontSize: "14px" }}
+                />
+                <Typography.Text style={{ color: "#8B949E", fontSize: "12px" }}>
+                  {subtaskCount}
+                </Typography.Text>
+              </Space>
+            </Tooltip>
+          )}
+        </Space>
+
+        <div></div>
+      </div>
     </div>
   );
 };

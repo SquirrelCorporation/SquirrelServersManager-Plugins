@@ -958,11 +958,12 @@ const TodoPluginComponent: React.FC = () => {
   const boardContainerStyle: React.CSSProperties = {
     display: "flex",
     flexDirection: "row", // Ensure row direction by default
-    gap: "16px",
+    gap: "20px", // Updated from 16px
     overflowX: "auto", // Allow horizontal scrolling if needed
-    padding: "10px 4px", // Add a little horizontal padding
+    padding: "20px", // Updated from 10px 4px
     minHeight: "60vh", // Example height
     alignItems: "flex-start", // Align columns at the top
+    // backgroundColor: "#171717", // Will be set in responsiveBoardStyle below
   };
 
   // Check screen size for responsiveness
@@ -980,6 +981,7 @@ const TodoPluginComponent: React.FC = () => {
   // Use the base style and override for small screens
   const responsiveBoardStyle: React.CSSProperties = {
     ...boardContainerStyle,
+    backgroundColor: "#0D1117", // Main board area background matching overall theme
     ...(isSmallScreen && {
       flexDirection: "column",
       overflowX: "hidden",
@@ -993,62 +995,85 @@ const TodoPluginComponent: React.FC = () => {
   return (
     <div
       style={{
-        padding: "20px",
+        padding: "24px", // Increased padding
         margin: "0",
-        backgroundColor: "#171717", // Dark background
+        backgroundColor: "#0D1117", // Dark background
         minHeight: "100vh",
-        color: "#e2e8f0", // Light text
+        color: "#E6EDF3", // Light text
+        fontFamily:
+          "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji'", // Modern sans-serif font
       }}
     >
       <h2
         style={{
           marginBottom: "24px",
-          color: "#e2e8f0",
-          fontSize: "24px",
+          color: "#E6EDF3",
+          fontSize: "20px", // Slightly smaller
           fontWeight: "600",
         }}
       >
         Squirrel Board
       </h2>
 
-      <Space.Compact style={{ marginBottom: 20, width: "100%" }}>
-        <Input
-          placeholder="New Task Title"
-          value={newTaskText}
-          onChange={(e) => setNewTaskText(e.target.value)}
-          onPressEnter={() => handleAddTask()}
-          disabled={isAddingTask}
-          style={{
-            backgroundColor: "#2d3748",
-            borderColor: "#4a5568",
-            color: "#e2e8f0",
-          }}
-        />
-        <Button
-          type="primary"
-          onClick={() => handleAddTask()}
-          loading={isAddingTask}
-        >
-          Add Task
-        </Button>
-      </Space.Compact>
+      <Space
+        style={{ marginBottom: 24, width: "100%" }}
+        direction="vertical"
+        size="large"
+      >
+        <Space.Compact style={{ width: "100%" }}>
+          <Input
+            placeholder="New Task Title"
+            value={newTaskText}
+            onChange={(e) => setNewTaskText(e.target.value)}
+            onPressEnter={() => handleAddTask()}
+            disabled={isAddingTask}
+            style={{
+              backgroundColor: "#010409",
+              borderColor: "#30363D",
+              color: "#E6EDF3",
+              borderRadius: "6px",
+              height: "38px",
+              fontSize: "14px",
+            }}
+            styles={{
+              input: {
+                backgroundColor: "#010409",
+                color: "#E6EDF3",
+              },
+            }}
+          />
+          <Button
+            onClick={() => handleAddTask()}
+            loading={isAddingTask}
+            icon={<PlusOutlined style={{ color: "#E6EDF3" }} />}
+            style={{
+              backgroundColor: "#21262D",
+              borderColor: "#30363D",
+              color: "#E6EDF3",
+              borderRadius: "6px",
+              height: "38px",
+              boxShadow: "none",
+            }}
+          >
+            Add Task
+          </Button>
+        </Space.Compact>
 
-      <div style={{ marginBottom: 20 }}>
-        <label style={{ marginRight: 8, color: "#e2e8f0" }}>
-          Filter by Tags:
-        </label>
-        <Select
-          mode="multiple"
-          allowClear
-          style={{ width: "calc(100% - 120px)" }}
-          placeholder="Select tags to filter"
-          onChange={handleFilterChange}
-          value={filterTags}
-          loading={loadingTags}
-          options={allTags.map((tag) => ({ label: tag, value: tag }))}
-          maxTagCount="responsive"
-        />
-      </div>
+        <div style={{ width: "100%" }}>
+          <Select
+            mode="multiple"
+            allowClear
+            style={{ width: "100%", borderRadius: "6px" }}
+            placeholder="Filter by Tags..."
+            onChange={handleFilterChange}
+            value={filterTags}
+            loading={loadingTags}
+            options={allTags.map((tag) => ({ label: tag, value: tag }))}
+            maxTagCount="responsive"
+            variant="filled"
+          />
+        </div>
+      </Space>
 
       {loading ? (
         <Spin size="large" style={{ display: "block", margin: "50px auto" }} />
@@ -1063,7 +1088,7 @@ const TodoPluginComponent: React.FC = () => {
           <div
             style={{
               ...responsiveBoardStyle,
-              backgroundColor: "#171717", // Dark background for board
+              // backgroundColor is already set in responsiveBoardStyle
             }}
           >
             {KANBAN_STATUSES.map((status) => (
